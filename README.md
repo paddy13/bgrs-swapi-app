@@ -23,9 +23,10 @@ After you select one of the character from the dropdown, the movies list will be
 <img width="1786" alt="image" src="https://user-images.githubusercontent.com/30522916/165900514-bbdee9f1-27a3-4f0b-ac00-610232ba30aa.png">
 
 ### `To Do`
-[x] We can add a button in dropdon to fetch next 10 Characters as we are getting nextPage Url in the API.
-[x] Loader can be moved to center with a message
-[x] Can add a background image
+* Add a middleware to the app. (Saga or Thunk)!!
+* We can add a button in dropdon to fetch next 10 Characters as we are getting nextPage Url in the API.
+* Loader can be moved to center with a message
+* Can add a background image
 
 ## Learn More
 
