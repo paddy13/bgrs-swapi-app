@@ -1,46 +1,55 @@
 import Loader from "./utils/loader";
-import { connect } from "react-redux";
+import { useDispatch, useSelector, shallowEqual } from "react-redux";
 import { Card } from "react-bootstrap";
-import { bindActionCreators } from "redux";
 import { useState, useEffect } from "react";
-import { updateMovies } from "./Actions/updateMovie";
+import { updateMovies, fetchNewCharacters } from './Actions';
 import CardComponent from "./Component/CardComponent";
 import LastMovieDetails from "./Component/LastMovieDetails";
 
-function App(props) {
+function App() {
+  //Using selectors to fetch the state frpom store instead of stateMapToProps (Used Earlier)
+  const characters = useSelector(({characterReducer}) => characterReducer.results, shallowEqual);
+  const currentPage = useSelector(({characterReducer}) => characterReducer.current, shallowEqual);
+  const moviesList = useSelector(({updateMovieReducer}) => updateMovieReducer.moviesList, shallowEqual);
+  const lastMovieData = useSelector(({updateMovieReducer}) => updateMovieReducer.lastMovieData, shallowEqual);
+
   const [value, setValue] = useState("");
-  const [lastMovieData, setLastMovieData] = useState({});
   const [loading, setLoading] = useState(false);
-  const [characters, setCharacters] = useState([]);
+  const dispatch = useDispatch();
 
-  useEffect(() => {
-    var charData = [];
-    async function fetchCharData() {
-      const response = await fetch("https://swapi.dev/api/people");
-      const data = await response.json();
+  useEffect(()=>{
+    getNextCharacters(currentPage);
+  },[]); // eslint-disable-line react-hooks/exhaustive-deps
 
-      for (const result of data.results) {
-        charData.push({
-          name: result.name,
-          url: result.url
-        });
-      }
-      setCharacters(charData);
+  //Fetching and dispaching action in here to fetch intial characterdata
+  const getNextCharacters = async pageUrl => {
+    setLoading(true);
+    const charData = [];
+    const response = await fetch(pageUrl);
+    const data = await response.json();
+
+    for (const result of data.results) {
+      charData.push({
+        name: result.name,
+        url: result.url
+      });
     }
 
-    fetchCharData();
-  }, [])
+    dispatch(fetchNewCharacters(charData));
+    setLoading(false);
+  };
 
+  // This function handles the change in character.
+  // Fetch the movies and dispatch action to update movies.
   const handleChange = async (event) => {
-    setLoading(true);
     const url = event.target.value;
+    setLoading(true);
     setValue(url);
-    setLastMovieData({});
 
     const response = await fetch(url);
     const data = await response.json();
-
     const moviesList = [];
+
     if (data.films) {
       for (const film of data.films) {
         const filmRes = await fetch(film);
@@ -49,10 +58,7 @@ function App(props) {
       }
     }
 
-    props.updateMovies(moviesList);
-    if (moviesList.length) {
-      setLastMovieData(moviesList[moviesList.length - 1]);
-    }
+    dispatch(updateMovies(moviesList));
     setLoading(false);
   };
 
@@ -60,21 +66,23 @@ function App(props) {
     <div>
       <p style={{textAlign: 'center' }}>Select a Character from dropdown to see the movie list they were in!!</p>
       <select style={{ margin: '2%'}} value={value} onChange={handleChange} className="form-select form-select-sm w-50 mx-auto">
+        <option key="default" value="">Select a Character</option>
         {characters &&
           characters.map((option, i) => (
             <option key={i} value={option.url}>
               {option.name}
             </option>
-          ))}
+          ))
+        }
       </select>
       {loading ? (
         <Loader />
       ) : (
         <div>
           <Card style={{ width: '90%%', margin: '1%'}}>
-            {(props.moviesList && props.moviesList.length) ? (
+            {(moviesList && moviesList.length) ? (
               <CardComponent 
-                moviesList={props.moviesList}
+                moviesList={moviesList}
               />
             ) : (
               <h3> No movies to display!! Select a character from the dropdown!!</h3>
@@ -82,10 +90,12 @@ function App(props) {
           </Card>
 
           <div>
-            <LastMovieDetails 
-              title={lastMovieData.title}
-              releaseDate={lastMovieData.release_date}
-            />
+            {lastMovieData && 
+              <LastMovieDetails 
+                title={lastMovieData.title}
+                releaseDate={lastMovieData.release_date}
+              />
+            }
           </div>
         </div>
       )}
@@ -93,20 +103,4 @@ function App(props) {
   );
 }
 
-function mapStateToProps(state) {
-  const { updateMovieReducer } = state;
-  return {
-    moviesList: updateMovieReducer.moviesList
-  };
-}
-
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    {
-      updateMovies: updateMovies
-    },
-    dispatch
-  );
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(App);
+export default App;
